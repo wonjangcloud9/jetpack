@@ -7,7 +7,10 @@ import androidx.activity.compose.setContent
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.clickable
 import androidx.compose.material.*
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -16,38 +19,49 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ColorFilter
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.navigation.NavController
+import androidx.navigation.compose.NavHost
+import androidx.navigation.compose.composable
+import androidx.navigation.compose.rememberNavController
+
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContent {
-            ResultScreen(bmi = 35.1)
+            val navController = rememberNavController()
+            NavHost(navController = navController, startDestination = "Home") {
+                composable(route = "home") {
+                    HomeScreen(navController)
+                }
+                composable(route = "result") {
+                    ResultScreen(navController, bmi = 35.1)
+                }
+            }
         }
     }
 }
+
 @SuppressLint("UnusedMaterialScaffoldPaddingParameter")
 @Composable
-fun HomeScreen() {
+fun HomeScreen(navController: NavController) {
     val (height, setHeight) = rememberSaveable {
         mutableStateOf("")
     }
     val (weight, setWeight) = rememberSaveable {
         mutableStateOf("")
     }
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = { Text("Home Screen") }
-            )
-        }
-    ) {
-        Column (
+    Scaffold(topBar = {
+        TopAppBar(title = { Text("Home Screen") })
+    }) {
+        Column(
             modifier = Modifier.padding(16.dp)
-                ) {
+        ) {
             OutlinedTextField(
                 value = height,
                 onValueChange = setHeight,
@@ -63,7 +77,11 @@ fun HomeScreen() {
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
             )
             Spacer(modifier = Modifier.height(8.dp))
-            Button(onClick = { }, modifier = Modifier.fillMaxWidth()){
+            Button(
+                onClick = {
+                    navController.navigate("result")
+                }, modifier = Modifier.fillMaxWidth()
+            ) {
                 Text("계산")
             }
         }
@@ -72,30 +90,37 @@ fun HomeScreen() {
 
 @SuppressLint("UnusedMaterialScaffoldPaddingParameter")
 @Composable
-fun ResultScreen(bmi: Double){
-     Scaffold(
-         topBar = {
-             TopAppBar(
-                 title = { Text("비만도 계산기")}
-             )
-
-         }
-     ) {
-         Column(
-             modifier = Modifier.fillMaxWidth(),
-             verticalArrangement = Arrangement.Center,
-             horizontalAlignment = Alignment.CenterHorizontally
-         ) {
-             Text("과체중", fontSize = 30.sp)
-             Spacer(modifier = Modifier.height(50.dp))
-             Image(
-                 painter = painterResource(id = R.drawable.baseline_sentiment_dissatisfied_24),
-                 contentDescription = null,
-                 modifier = Modifier.size(100.dp),
-                 colorFilter = ColorFilter.tint(
-                     color = Color.Black
-                 )
-             )
-         }
-     }
+fun ResultScreen(navController: NavController, bmi: Double) {
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                title = { Text("비만도 계산기") },
+                navigationIcon = {
+                    Icon(
+                        ImageVector = Icons.Default.ArrowBack,
+                        contentDescription = "home",
+                        modifier = Modifier.clickable {
+                            navController.popBackStack()
+                        }
+                    )
+                }
+            )
+        }) {
+        Column(
+            modifier = Modifier.fillMaxWidth(),
+            verticalArrangement = Arrangement.Center,
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Text("과체중", fontSize = 30.sp)
+            Spacer(modifier = Modifier.height(50.dp))
+            Image(
+                painter = painterResource(id = R.drawable.baseline_sentiment_dissatisfied_24),
+                contentDescription = null,
+                modifier = Modifier.size(100.dp),
+                colorFilter = ColorFilter.tint(
+                    color = Color.Black
+                )
+            )
+        }
+    }
 }
