@@ -13,6 +13,7 @@ import androidx.compose.material.Icon
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.State
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
@@ -24,23 +25,34 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import kotlin.math.pow
 
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContent {
+            val viewModel = viewModel<BmiViewModel>()
             val navController = rememberNavController()
+
+            val bmi = viewModel.bmi.value
+
             NavHost(navController = navController, startDestination = "home") {
                 composable(route = "home") {
-                    HomeScreen(navController)
+                    HomeScreen(){
+                        height, weight ->
+                        viewModel.bmiCalculate(height, weight)
+                        navController.navigate("result")
+                    }
                 }
                 composable(route = "result") {
-                    ResultScreen(navController, bmi = 35.1)
+                    ResultScreen(navController, bmi = bmi)
                 }
             }
         }
@@ -49,7 +61,9 @@ class MainActivity : ComponentActivity() {
 
 @SuppressLint("UnusedMaterialScaffoldPaddingParameter")
 @Composable
-fun HomeScreen(navController: NavController) {
+fun HomeScreen(
+    onResultClicked: (Double, Double) -> Unit,
+) {
     val (height, setHeight) = rememberSaveable {
         mutableStateOf("")
     }
@@ -79,7 +93,9 @@ fun HomeScreen(navController: NavController) {
             Spacer(modifier = Modifier.height(8.dp))
             Button(
                 onClick = {
-                    navController.navigate("result")
+                    if (height.isNotEmpty() && weight.isNotEmpty()){
+                        onResultClicked(height.toDouble(), weight.toDouble())
+                    }
                 }, modifier = Modifier.fillMaxWidth()
             ) {
                 Text("계산")
@@ -91,6 +107,22 @@ fun HomeScreen(navController: NavController) {
 @SuppressLint("UnusedMaterialScaffoldPaddingParameter")
 @Composable
 fun ResultScreen(navController: NavController, bmi: Double) {
+
+    val text = when {
+        bmi >= 35 -> "고도 비만"
+        bmi >= 30 -> "2단계 비만"
+        bmi >= 25 -> "1단계 비만"
+        bmi >= 23 -> "과체중"
+        bmi >= 18.5 -> "정상"
+        else -> "저체중"
+    }
+
+    val imageRes = when {
+        bmi >= 23 -> R.drawable.baseline_sentiment_very_dissatisfied_24
+        bmi >= 18.5 -> R.drawable.baseline_sentiment_satisfied_24
+        else -> R.drawable.baseline_sentiment_dissatisfied_24
+    }
+
     Scaffold(
         topBar = {
             TopAppBar(
@@ -111,10 +143,10 @@ fun ResultScreen(navController: NavController, bmi: Double) {
             verticalArrangement = Arrangement.Center,
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Text("과체중", fontSize = 30.sp)
+            Text(text, fontSize = 30.sp)
             Spacer(modifier = Modifier.height(50.dp))
             Image(
-                painter = painterResource(id = R.drawable.baseline_sentiment_dissatisfied_24),
+                painter = painterResource(id = imageRes),
                 contentDescription = null,
                 modifier = Modifier.size(100.dp),
                 colorFilter = ColorFilter.tint(
@@ -122,5 +154,17 @@ fun ResultScreen(navController: NavController, bmi: Double) {
                 )
             )
         }
+    }
+}
+
+class BmiViewModel : ViewModel() {
+    private val _bmi = mutableStateOf(0.0)
+    var bmi: State<Double> = _bmi
+
+    fun bmiCalculate(
+        height: Double,
+        weight: Double,
+    ) {
+        _bmi.value = weight / (height / 100.0).pow(2.0)
     }
 }
